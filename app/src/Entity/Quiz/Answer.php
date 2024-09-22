@@ -6,6 +6,7 @@ use App\Entity\Traits\TimestampableTrait;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity()]
+#[ORM\Table(name: 'answers')]
 class Answer
 {
     use TimestampableTrait;

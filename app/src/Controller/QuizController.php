@@ -7,7 +7,7 @@ use App\Entity\Quiz\AnswerOption;
 use App\Entity\Quiz\Attempt;
 use App\Entity\Quiz\Question;
 use App\Entity\Quiz\Test;
-use App\Entity\User\User;
+use App\Entity\User\AppUser;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -17,49 +17,55 @@ use Symfony\Component\Routing\Annotation\Route;
 class QuizController extends AbstractController
 {
     #[Route('/quiz', name: 'quiz_index')]
-    public function index(EntityManagerInterface $em): Response
+    public function index(): Response
     {
-        $questions = $em->getRepository(Question::class)->findAll();
-
-        return $this->render('quiz/index.html.twig', [
-            'questions' => $questions,
-        ]);
+        return $this->render('quiz/index.html.twig');
     }
 
-    #[Route('/quiz/start/{testId}', name: 'quiz_start')]
-    public function start(int $testId, EntityManagerInterface $em): Response
+    #[Route('/quiz/start', name: 'quiz_start', methods: ['POST'])]
+    public function start(Request $request, EntityManagerInterface $em): Response
     {
-        $user = $this->getUser();
-        $test = $em->getRepository(Test::class)->find($testId);
+        $username = $request->request->get('username');
+
+        $user = $em->getRepository(AppUser::class)->findOneBy(['username' => $username]);
+
+        if (!$user) {
+            $user = new AppUser();
+            $user->setUsername($username);
+            $em->persist($user);
+            $em->flush();
+        }
+
+        $test = $em->getRepository(Test::class)->findOneBy([]);
 
         $attempt = new Attempt();
         $attempt->setUser($user);
         $attempt->setTest($test);
         $attempt->setStartTime(new \DateTime());
-
         $em->persist($attempt);
         $em->flush();
 
-        return $this->redirectToRoute('quiz_index', ['attemptId' => $attempt->getId()]);
+        return $this->redirectToRoute('quiz_questions', ['attemptId' => $attempt->getId()]);
+    }
+
+    #[Route('/quiz/questions/{attemptId}', name: 'quiz_questions')]
+    public function showQuestions(int $attemptId, EntityManagerInterface $em): Response
+    {
+        $attempt = $em->getRepository(Attempt::class)->find($attemptId);
+        $questions = $em->getRepository(Question::class)->findAll();
+
+        return $this->render('quiz/start.html.twig', [
+            'attemptId' => $attempt->getId(),
+            'startTime' => $attempt->getStartTime(),
+            'questions' => $questions,
+        ]);
     }
 
     #[Route('/quiz/submit/{attemptId}', name: 'quiz_submit', methods: ['POST'])]
     public function submit(int $attemptId, Request $request, EntityManagerInterface $em): Response
     {
         $attempt = $em->getRepository(Attempt::class)->find($attemptId);
-
-        $userId = $request->request->get('user_id');
-
-        $user = $em->getRepository(User::class)->find($userId);
-
-        if (!$user) {
-            throw $this->createNotFoundException('Пользователь не найден');
-        }
-
-        $attempt->setUser($user);
-
         $userAnswers = $request->request->get('answers', []);
-
         $questions = $em->getRepository(Question::class)->findAll();
         $correctAnswers = 0;
 
@@ -90,7 +96,6 @@ class QuizController extends AbstractController
         }
 
         $attempt->setEndTime(new \DateTime());
-
         $em->flush();
 
         return $this->render('quiz/result.html.twig', [

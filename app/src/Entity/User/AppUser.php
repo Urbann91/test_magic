@@ -5,8 +5,9 @@ namespace App\Entity\User;
 use Doctrine\ORM\Mapping as ORM;
 use App\Entity\Traits\TimestampableTrait;
 
-#[ORM\Entity()]
-class User
+#[ORM\Entity]
+#[ORM\Table(name: 'app_users')]
+class AppUser
 {
     use TimestampableTrait;
 

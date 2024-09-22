@@ -3,10 +3,11 @@
 namespace App\Entity\Quiz;
 
 use App\Entity\Traits\TimestampableTrait;
-use App\Entity\User\User;
+use App\Entity\User\AppUser;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity()]
+#[ORM\Table(name: 'attempts')]
 class Attempt
 {
     use TimestampableTrait;
@@ -16,7 +17,7 @@ class Attempt
     #[ORM\Column(type: 'integer')]
     private $id;
 
-    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\ManyToOne(targetEntity: AppUser::class)]
     private $user;
 
     #[ORM\ManyToOne(targetEntity: Test::class)]
@@ -33,12 +34,12 @@ class Attempt
         return $this->id;
     }
 
-    public function getUser(): ?User
+    public function getUser(): ?AppUser
     {
         return $this->user;
     }
 
-    public function setUser(?User $user): self
+    public function setUser(?AppUser $user): self
     {
         $this->user = $user;
         return $this;

@@ -2,10 +2,13 @@
 
 namespace App\Entity\Quiz;
 
-use App\Entity\Traits\TimestampableTrait;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use App\Entity\Traits\TimestampableTrait;
 
-#[ORM\Entity()]
+#[ORM\Entity]
+#[ORM\Table(name: 'questions')]
 class Question
 {
     use TimestampableTrait;
@@ -18,11 +21,17 @@ class Question
     #[ORM\Column(type: 'string', length: 255)]
     private $text;
 
-    #[ORM\ManyToOne(targetEntity: Test::class)]
-    private $test;
+    #[ORM\ManyToMany(targetEntity: Test::class, mappedBy: 'questions')]
+    private $tests;
 
-    #[ORM\OneToMany(targetEntity: AnswerOption::class, mappedBy: 'question')]
+    #[ORM\OneToMany(mappedBy: 'question', targetEntity: AnswerOption::class, cascade: ['persist', 'remove'])]
     private $answerOptions;
+
+    public function __construct()
+    {
+        $this->tests = new ArrayCollection();
+        $this->answerOptions = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -40,14 +49,38 @@ class Question
         return $this;
     }
 
-    public function getTest(): ?Test
+    /**
+     * @return Collection|Test[]
+     */
+    public function getTests(): Collection
     {
-        return $this->test;
+        return $this->tests;
     }
 
-    public function setTest(?Test $test): self
+    public function addTest(Test $test): self
     {
-        $this->test = $test;
+        if (!$this->tests->contains($test)) {
+            $this->tests[] = $test;
+            $test->addQuestion($this);
+        }
+
         return $this;
+    }
+
+    public function removeTest(Test $test): self
+    {
+        if ($this->tests->removeElement($test)) {
+            $test->removeQuestion($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection|AnswerOption[]
+     */
+    public function getAnswerOptions(): Collection
+    {
+        return $this->answerOptions;
     }
 }

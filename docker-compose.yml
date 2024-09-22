@@ -10,7 +10,7 @@ services:
     depends_on:
       - db
     environment:
-      DATABASE_URL: postgres://symfony:symfony@db:5432/symfony
+      DATABASE_URL: postgres://symfony:symfony@db:5432/postgres
 
   db:
     image: postgres:13

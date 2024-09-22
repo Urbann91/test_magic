@@ -2,10 +2,13 @@
 
 namespace App\Entity\Quiz;
 
-use App\Entity\Traits\TimestampableTrait;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use App\Entity\Traits\TimestampableTrait;
 
-#[ORM\Entity()]
+#[ORM\Entity]
+#[ORM\Table(name: 'tests')]
 class Test
 {
     use TimestampableTrait;
@@ -18,8 +21,14 @@ class Test
     #[ORM\Column(type: 'string', length: 255)]
     private $name;
 
-    #[ORM\OneToMany(targetEntity: Question::class, mappedBy: 'test')]
+    #[ORM\ManyToMany(targetEntity: Question::class, inversedBy: 'tests')]
+    #[ORM\JoinTable(name: 'test_questions')]
     private $questions;
+
+    public function __construct()
+    {
+        $this->questions = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -34,6 +43,29 @@ class Test
     public function setName(string $name): self
     {
         $this->name = $name;
+        return $this;
+    }
+
+    /**
+     * @return Collection|Question[]
+     */
+    public function getQuestions(): Collection
+    {
+        return $this->questions;
+    }
+
+    public function addQuestion(Question $question): self
+    {
+        if (!$this->questions->contains($question)) {
+            $this->questions[] = $question;
+        }
+
+        return $this;
+    }
+
+    public function removeQuestion(Question $question): self
+    {
+        $this->questions->removeElement($question);
         return $this;
     }
 }
