@@ -1,0 +1,33 @@
+{# templates/quiz/index.html.twig #}
+
+{% extends 'base.html.twig' %}
+
+{% block title %}Тест{% endblock %}
+
+{% block body %}
+    <h1>Тест</h1>
+
+    <form action="{{ path('quiz_submit', { 'attemptId': attemptId }) }}" method="post">
+        {# Поле для ввода UserID #}
+        <div>
+            <label for="user_id">Введите UserID:</label>
+            <input type="text" id="user_id" name="user_id" required>
+        </div>
+
+        <ul>
+            {% for question in questions %}
+                <li>
+                    <h3>{{ question.text }}</h3>
+                    {% for option in question.answerOptions %}
+                        <div>
+                            <input type="checkbox" id="answer_{{ option.id }}" name="answers[]" value="{{ option.id }}">
+                            <label for="answer_{{ option.id }}">{{ option.text }}</label>
+                        </div>
+                    {% endfor %}
+                </li>
+            {% endfor %}
+        </ul>
+
+        <button type="submit">Отправить ответы</button>
+    </form>
+{% endblock %}

@@ -7,6 +7,7 @@ use App\Entity\Quiz\AnswerOption;
 use App\Entity\Quiz\Attempt;
 use App\Entity\Quiz\Question;
 use App\Entity\Quiz\Test;
+use App\Entity\User\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -46,6 +47,17 @@ class QuizController extends AbstractController
     public function submit(int $attemptId, Request $request, EntityManagerInterface $em): Response
     {
         $attempt = $em->getRepository(Attempt::class)->find($attemptId);
+
+        $userId = $request->request->get('user_id');
+
+        $user = $em->getRepository(User::class)->find($userId);
+
+        if (!$user) {
+            throw $this->createNotFoundException('Пользователь не найден');
+        }
+
+        $attempt->setUser($user);
+
         $userAnswers = $request->request->get('answers', []);
 
         $questions = $em->getRepository(Question::class)->findAll();
@@ -59,7 +71,7 @@ class QuizController extends AbstractController
                 if (in_array($answerOption->getId(), $userAnswers)) {
                     $userBitmask |= $answerOption->getBitMask();
                 }
-                if ($answerOption->getIsCorrect()) {
+                if ($answerOption->isCorrect()) {
                     $correctBitmask |= $answerOption->getBitMask();
                 }
             }
@@ -78,6 +90,7 @@ class QuizController extends AbstractController
         }
 
         $attempt->setEndTime(new \DateTime());
+
         $em->flush();
 
         return $this->render('quiz/result.html.twig', [

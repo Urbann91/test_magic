@@ -1,0 +1,11 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Результаты теста{% endblock %}
+
+{% block body %}
+    <h1>Результаты теста</h1>
+
+    <p>Вы правильно ответили на {{ correctAnswers }} из {{ totalQuestions }} вопросов.</p>
+
+    <a href="{{ path('quiz_index') }}">Пройти ещё раз</a>
+{% endblock %}
