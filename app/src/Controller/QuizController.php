@@ -2,11 +2,10 @@
 
 namespace App\Controller;
 
-use App\Entity\Quiz\Answer;
 use App\Entity\Quiz\Attempt;
 use App\Entity\Quiz\Question;
-use App\Entity\Quiz\Test;
 use App\Entity\User\AppUser;
+use App\Service\QuizService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,6 +14,10 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class QuizController extends AbstractController
 {
+    public function __construct(private QuizService $quizService)
+    {
+    }
+
     #[Route('/quiz', name: 'quiz_index')]
     public function index(): Response
     {
@@ -25,7 +28,6 @@ class QuizController extends AbstractController
     public function start(Request $request, EntityManagerInterface $em): Response
     {
         $username = $request->request->get('username');
-
         $user = $em->getRepository(AppUser::class)->findOneBy(['username' => $username]);
 
         if (!$user) {
@@ -35,14 +37,7 @@ class QuizController extends AbstractController
             $em->flush();
         }
 
-        $test = $em->getRepository(Test::class)->findOneBy([]);
-
-        $attempt = new Attempt();
-        $attempt->setUser($user);
-        $attempt->setTest($test);
-        $attempt->setStartTime(new \DateTime());
-        $em->persist($attempt);
-        $em->flush();
+        $attempt = $this->quizService->createAttempt($user);
 
         return $this->redirectToRoute('quiz_questions', ['attemptId' => $attempt->getId()]);
     }
@@ -61,68 +56,17 @@ class QuizController extends AbstractController
     }
 
     #[Route('/quiz/submit', name: 'quiz_submit', methods: ['POST'])]
-    public function submit(Request $request, EntityManagerInterface $em): Response
+    public function submit(Request $request): Response
     {
         $attemptId = $request->request->get('attemptId');
-        $attempt = $em->getRepository(Attempt::class)->find($attemptId);
-
         $userAnswers = $request->request->all('answers');
-        $questions = $em->getRepository(Question::class)->findAll();
 
-        $correctAnswers = 0;
-        $questionResults = [];
-
-        foreach ($questions as $question) {
-            $correctBitmask = 0;
-            $userBitmask = 0;
-            $correctOptions = [];
-            $userSelectedOptions = [];
-
-            foreach ($question->getAnswerOptions() as $answerOption) {
-                if ($answerOption->isCorrect()) {
-                    $correctOptions[] = $answerOption;
-                    $correctBitmask |= $answerOption->getBitMask();
-                }
-
-                if (isset($userAnswers[$question->getId()])) {
-                    foreach ($userAnswers[$question->getId()] as $answerId) {
-                        if ($answerId == $answerOption->getId()) {
-                            $userSelectedOptions[] = $answerOption;
-                            $userBitmask |= $answerOption->getBitMask();
-                        }
-                    }
-                }
-            }
-
-            $hasTrueAnswers = ($userBitmask & $correctBitmask) !== 0;
-            $hasFalseAnswers = ($userBitmask & ~$correctBitmask) !== 0;
-
-            if ($hasTrueAnswers && !$hasFalseAnswers) {
-                $correctAnswers++;
-            }
-
-            // question map init
-            $questionResults[] = [
-                'question' => $question,
-                'correctOptions' => $correctOptions,
-                'userSelectedOptions' => $userSelectedOptions
-            ];
-
-            foreach ($userSelectedOptions as $selectedOption) {
-                $answerEntity = new Answer();
-                $answerEntity->setAttempt($attempt);
-                $answerEntity->setAnswerOption($selectedOption);
-                $em->persist($answerEntity);
-            }
-        }
-
-        $attempt->setEndTime(new \DateTime());
-        $em->flush();
+        $resultData = $this->quizService->checkAnswers($attemptId, $userAnswers);
 
         return $this->render('quiz/result.html.twig', [
-            'correctAnswers' => $correctAnswers,
-            'totalQuestions' => count($questions),
-            'questionResults' => $questionResults
+            'correctAnswers' => $resultData['correctAnswers'] ?? [],
+            'totalQuestions' => $resultData['totalQuestions'] ?? [],
+            'questionResults' => $resultData['questionResults'] ?? []
         ]);
     }
 }
