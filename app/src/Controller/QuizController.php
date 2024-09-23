@@ -61,12 +61,15 @@ class QuizController extends AbstractController
         ]);
     }
 
-    #[Route('/quiz/submit/{attemptId}', name: 'quiz_submit', methods: ['POST'])]
-    public function submit(int $attemptId, Request $request, EntityManagerInterface $em): Response
+    #[Route('/quiz/submit', name: 'quiz_submit', methods: ['POST'])]
+    public function submit(Request $request, EntityManagerInterface $em): Response
     {
+        $attemptId = $request->request->get('attemptId');
         $attempt = $em->getRepository(Attempt::class)->find($attemptId);
-        $userAnswers = $request->request->get('answers', []);
+
+        $userAnswers = $request->request->all('answers');
         $questions = $em->getRepository(Question::class)->findAll();
+
         $correctAnswers = 0;
 
         foreach ($questions as $question) {
@@ -74,24 +77,36 @@ class QuizController extends AbstractController
             $userBitmask = 0;
 
             foreach ($question->getAnswerOptions() as $answerOption) {
-                if (in_array($answerOption->getId(), $userAnswers)) {
-                    $userBitmask |= $answerOption->getBitMask();
+                if (isset($userAnswers[$question->getId()])) {
+                    foreach ($userAnswers[$question->getId()] as $answerId) {
+                        if ($answerId == $answerOption->getId()) {
+                            $userBitmask |= $answerOption->getBitMask();
+                        }
+                    }
                 }
+
                 if ($answerOption->isCorrect()) {
                     $correctBitmask |= $answerOption->getBitMask();
                 }
             }
 
-            if (($userBitmask & $correctBitmask) === $correctBitmask) {
+            $hasTrueAnswers = ($userBitmask & $correctBitmask) !== 0;
+            $hasFalseAnswers = ($userBitmask & ~$correctBitmask) !== 0;
+
+            if ($hasTrueAnswers && !$hasFalseAnswers) {
                 $correctAnswers++;
             }
 
-            foreach ($userAnswers as $answerId) {
-                $answerOption = $em->getRepository(AnswerOption::class)->find($answerId);
-                $answer = new Answer();
-                $answer->setAttempt($attempt);
-                $answer->setAnswerOption($answerOption);
-                $em->persist($answer);
+            foreach ($userAnswers as $answer) {
+                if (isset($answer['id'])) {
+                    $answerOption = $em->getRepository(AnswerOption::class)->find($answer['id']);
+                    if ($answerOption) {
+                        $answerEntity = new Answer();
+                        $answerEntity->setAttempt($attempt);
+                        $answerEntity->setAnswerOption($answerOption);
+                        $em->persist($answer);
+                    }
+                }
             }
         }
 

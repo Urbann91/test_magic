@@ -7,7 +7,9 @@
 
     <p>Начало попытки: {{ startTime|date('Y-m-d H:i:s') }}</p>
 
-    <form action="{{ path('quiz_submit', { 'attemptId': attemptId }) }}" method="post">
+    <form action="{{ path('quiz_submit') }}" method="post">
+        <input type="hidden" name="attemptId" value="{{ attemptId }}">
+
         <ul>
             {% for question in questions %}
                 <li>
