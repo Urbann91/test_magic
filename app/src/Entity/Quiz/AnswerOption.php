@@ -42,6 +42,7 @@ class AnswerOption
     public function setText(string $text): self
     {
         $this->text = $text;
+
         return $this;
     }
 
@@ -53,6 +54,7 @@ class AnswerOption
     public function setIsCorrect(bool $isCorrect): self
     {
         $this->isCorrect = $isCorrect;
+
         return $this;
     }
 
@@ -64,6 +66,7 @@ class AnswerOption
     public function setBitMask(int $bitMask): self
     {
         $this->bitMask = $bitMask;
+
         return $this;
     }
 
@@ -75,6 +78,7 @@ class AnswerOption
     public function setQuestion(?Question $question): self
     {
         $this->question = $question;
+
         return $this;
     }
 }

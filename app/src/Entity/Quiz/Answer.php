@@ -35,6 +35,7 @@ class Answer
     public function setAttempt(?Attempt $attempt): self
     {
         $this->attempt = $attempt;
+
         return $this;
     }
 
@@ -46,6 +47,7 @@ class Answer
     public function setAnswerOption(?AnswerOption $answerOption): self
     {
         $this->answerOption = $answerOption;
+
         return $this;
     }
 }

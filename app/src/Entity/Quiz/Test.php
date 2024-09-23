@@ -43,6 +43,7 @@ class Test
     public function setName(string $name): self
     {
         $this->name = $name;
+
         return $this;
     }
 
@@ -66,6 +67,7 @@ class Test
     public function removeQuestion(Question $question): self
     {
         $this->questions->removeElement($question);
+
         return $this;
     }
 }

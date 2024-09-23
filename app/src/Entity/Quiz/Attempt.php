@@ -42,6 +42,7 @@ class Attempt
     public function setUser(?AppUser $user): self
     {
         $this->user = $user;
+
         return $this;
     }
 
@@ -53,6 +54,7 @@ class Attempt
     public function setTest(?Test $test): self
     {
         $this->test = $test;
+
         return $this;
     }
 
@@ -64,6 +66,7 @@ class Attempt
     public function setStartTime(\DateTimeInterface $startTime): self
     {
         $this->startTime = $startTime;
+
         return $this;
     }
 
@@ -75,6 +78,7 @@ class Attempt
     public function setEndTime(\DateTimeInterface $endTime): self
     {
         $this->endTime = $endTime;
+
         return $this;
     }
 }

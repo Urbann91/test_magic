@@ -46,6 +46,7 @@ class Question
     public function setText(string $text): self
     {
         $this->text = $text;
+
         return $this;
     }
 
