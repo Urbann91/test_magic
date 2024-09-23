@@ -5,7 +5,9 @@ namespace App\Controller;
 use App\Entity\Quiz\Attempt;
 use App\Entity\Quiz\Question;
 use App\Entity\User\AppUser;
+use App\Repository\AttemptRepository;
 use App\Service\QuizService;
+use Doctrine\DBAL\Exception\LockWaitTimeoutException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,8 +16,10 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class QuizController extends AbstractController
 {
-    public function __construct(private QuizService $quizService)
-    {
+    public function __construct(
+        private QuizService $quizService,
+        private EntityManagerInterface $entityManager
+    ) {
     }
 
     #[Route('/quiz', name: 'quiz_index')]
@@ -55,18 +59,41 @@ class QuizController extends AbstractController
         ]);
     }
 
+    /**
+     * @throws \Exception
+     */
     #[Route('/quiz/submit', name: 'quiz_submit', methods: ['POST'])]
-    public function submit(Request $request): Response
+    public function submit(Request $request, AttemptRepository $attemptRepository): Response
     {
         $attemptId = $request->request->get('attemptId');
         $userAnswers = $request->request->all('answers');
 
-        $resultData = $this->quizService->checkAnswers($attemptId, $userAnswers);
+        $this->entityManager->beginTransaction();
 
-        return $this->render('quiz/result.html.twig', [
-            'correctAnswers' => $resultData['correctAnswers'] ?? [],
-            'totalQuestions' => $resultData['totalQuestions'] ?? [],
-            'questionResults' => $resultData['questionResults'] ?? []
-        ]);
+        try {
+            $attempt = $attemptRepository->findAttemptByIdWithLock($attemptId);
+
+            if (!$attempt) {
+                throw $this->createNotFoundException('Attempt not found.');
+            }
+
+            $resultData = $this->quizService->checkAnswers($attempt, $userAnswers);
+
+            $attempt->setEndTime(new \DateTime());
+            $this->entityManager->flush();
+            $this->entityManager->commit();
+
+            return $this->render('quiz/result.html.twig', [
+                'correctAnswers' => $resultData['correctAnswers'] ?? [],
+                'totalQuestions' => $resultData['totalQuestions'] ?? [],
+                'questionResults' => $resultData['questionResults'] ?? []
+            ]);
+        } catch (LockWaitTimeoutException $exception) {
+            $this->entityManager->rollback();
+            throw new \Exception('Failed to acquire lock, please try again later.');
+        } catch (\Exception $exception) {
+            $this->entityManager->rollback();
+            throw $exception;
+        }
     }
 }

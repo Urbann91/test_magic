@@ -38,9 +38,8 @@ class QuizService
         return $attempt;
     }
 
-    public function checkAnswers(int $attemptId, array $userAnswers): array
+    public function checkAnswers(Attempt $attempt, array $userAnswers): array
     {
-        $attempt = $this->attemptRepository->findAttemptById($attemptId);
         $questions = $this->questionRepository->findAllQuestions();
         $correctAnswers = 0;
         $questionResults = [];

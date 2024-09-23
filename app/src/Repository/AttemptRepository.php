@@ -2,8 +2,11 @@
 
 namespace App\Repository;
 
+namespace App\Repository;
+
 use App\Entity\Quiz\Attempt;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\DBAL\LockMode;
 
 class AttemptRepository
 {
@@ -11,8 +14,8 @@ class AttemptRepository
     {
     }
 
-    public function findAttemptById(int $attemptId): ?Attempt
+    public function findAttemptByIdWithLock(int $attemptId): ?Attempt
     {
-        return $this->em->getRepository(Attempt::class)->find($attemptId);
+        return $this->em->getRepository(Attempt::class)->find($attemptId, LockMode::PESSIMISTIC_WRITE);
     }
 }
