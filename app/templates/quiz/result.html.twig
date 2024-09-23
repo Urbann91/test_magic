@@ -1,11 +1,53 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Результаты теста{% endblock %}
+{% block title %}Результат теста{% endblock %}
 
 {% block body %}
-    <h1>Результаты теста</h1>
+    <h1>Результат теста</h1>
 
     <p>Вы правильно ответили на {{ correctAnswers }} из {{ totalQuestions }} вопросов.</p>
 
-    <a href="{{ path('quiz_index') }}">Пройти ещё раз</a>
+    <div class="results-container" style="display: flex;">
+        <div class="correct-answers" style="width: 50%; padding-right: 20px;">
+            <h2>Правильные ответы</h2>
+            <ul>
+                {% for result in questionResults %}
+                    <li>
+                        <h3>{{ result.question.text }}</h3>
+                        <ul>
+                            {% for option in result.correctOptions %}
+                                <li style="color: green;">
+                                    {{ option.text }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="user-answers" style="width: 50%; padding-left: 20px;">
+            <h2>Ваши ответы</h2>
+            <ul>
+                {% for result in questionResults %}
+                    <li>
+                        <h3>{{ result.question.text }}</h3>
+                        <ul>
+                            {% if result.userSelectedOptions is empty %}
+                                <li style="color: red;">Без ответа</li>
+                            {% else %}
+                                {% for option in result.userSelectedOptions %}
+                                    <li style="color: {{ option.isCorrect ? 'green' : 'red' }};">
+                                        {{ option.text }}
+                                    </li>
+                                {% endfor %}
+                            {% endif %}
+                        </ul>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <a href="{{ path('quiz_index') }}">Пройти заново</a>
 {% endblock %}

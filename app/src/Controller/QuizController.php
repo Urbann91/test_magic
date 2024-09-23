@@ -3,7 +3,6 @@
 namespace App\Controller;
 
 use App\Entity\Quiz\Answer;
-use App\Entity\Quiz\AnswerOption;
 use App\Entity\Quiz\Attempt;
 use App\Entity\Quiz\Question;
 use App\Entity\Quiz\Test;
@@ -71,22 +70,27 @@ class QuizController extends AbstractController
         $questions = $em->getRepository(Question::class)->findAll();
 
         $correctAnswers = 0;
+        $questionResults = [];
 
         foreach ($questions as $question) {
             $correctBitmask = 0;
             $userBitmask = 0;
+            $correctOptions = [];
+            $userSelectedOptions = [];
 
             foreach ($question->getAnswerOptions() as $answerOption) {
+                if ($answerOption->isCorrect()) {
+                    $correctOptions[] = $answerOption;
+                    $correctBitmask |= $answerOption->getBitMask();
+                }
+
                 if (isset($userAnswers[$question->getId()])) {
                     foreach ($userAnswers[$question->getId()] as $answerId) {
                         if ($answerId == $answerOption->getId()) {
+                            $userSelectedOptions[] = $answerOption;
                             $userBitmask |= $answerOption->getBitMask();
                         }
                     }
-                }
-
-                if ($answerOption->isCorrect()) {
-                    $correctBitmask |= $answerOption->getBitMask();
                 }
             }
 
@@ -97,16 +101,18 @@ class QuizController extends AbstractController
                 $correctAnswers++;
             }
 
-            foreach ($userAnswers as $answer) {
-                if (isset($answer['id'])) {
-                    $answerOption = $em->getRepository(AnswerOption::class)->find($answer['id']);
-                    if ($answerOption) {
-                        $answerEntity = new Answer();
-                        $answerEntity->setAttempt($attempt);
-                        $answerEntity->setAnswerOption($answerOption);
-                        $em->persist($answer);
-                    }
-                }
+            // question map init
+            $questionResults[] = [
+                'question' => $question,
+                'correctOptions' => $correctOptions,
+                'userSelectedOptions' => $userSelectedOptions
+            ];
+
+            foreach ($userSelectedOptions as $selectedOption) {
+                $answerEntity = new Answer();
+                $answerEntity->setAttempt($attempt);
+                $answerEntity->setAnswerOption($selectedOption);
+                $em->persist($answerEntity);
             }
         }
 
@@ -116,6 +122,7 @@ class QuizController extends AbstractController
         return $this->render('quiz/result.html.twig', [
             'correctAnswers' => $correctAnswers,
             'totalQuestions' => count($questions),
+            'questionResults' => $questionResults
         ]);
     }
 }

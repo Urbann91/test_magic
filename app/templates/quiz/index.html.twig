@@ -3,14 +3,14 @@
 {% block title %}Начало теста{% endblock %}
 
 {% block body %}
-    <h1>Введите Username для начала</h1>
+    <h1>Введите Username</h1>
 
     <form action="{{ path('quiz_start') }}" method="post">
         <div>
             <label for="username">Username:</label>
             <input type="text" id="username" name="username" required>
         </div>
-
+        <br>
         <button type="submit">Начать тест</button>
     </form>
 {% endblock %}
